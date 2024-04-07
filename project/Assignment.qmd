@@ -1,0 +1,159 @@
+---
+title: "AC584 Quarto Assignment"
+subtitle: "Bullying Insights: Examining the UNICEF Indicator on Student Experiences"
+author: Rachel Obrien
+date: 2024-04-07
+format: html
+html:
+  theme: sandstone
+  backgroundcolor: lightblue
+execute: 
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+# libraries
+library(tidyverse)
+
+#data
+unicef_indicator_1_1_ <- read_csv("unicef_indicator_1 (1).csv")
+unicef_metadata_1_ <- read_csv("unicef_metadata (1).csv")
+data_right_3_1_ <- read_csv("data_right_3 (1).csv")
+
+#transformations
+data_join <- full_join(unicef_indicator_1_1_, unicef_metadata_1_)
+data_join_2 <- full_join(unicef_indicator_1_1_, data_right_3_1_)
+data_join_3 <- full_join(unicef_metadata_1_, data_right_3_1_)
+data_join_2015 <- unicef_metadata_1_ %>%
+  filter(year == 2015)
+
+```
+
+
+<img src="https://www.unicef.ie/app/uploads/2021/06/Logo_Signature_Container_Square_Centered_ENG_RGB-600x600.png" alt="Unicef Logo" style="width: 30%; height: auto;">
+
+
+# Introduction
+
+This report aims to provide insights into a critical issue facing today's youth: **bullying**. It is vital to gain an understanding of the prevalence of bullying among *adolescents* worldwide, as this will enable policy makers to develop targeted interventions and create safer environments for future generations. 
+
+As we explore this indicator, we'll also consider the potential links between bullying and ***GDP per capita*** in countries and any links with ***life expectancy***. Gaining an understanding of how these metrics link could help indentify common factors influencing bullying rates. 
+
+
+## Bullying Around the World
+
+```{r}
+#| fig-cap: "This detailed map provides valuable insights into the percentage of children aged 13 - 15 who have reported being bullied. Interestingly there appears to be a higher rate of bullying reported in developing countries, particularly in the African continent. It highlights the need to look into what socio-economic factors could influence the rate of bullying in a country. "
+
+
+map_world <- map_data("world")
+
+map_data_join <- full_join(unicef_indicator_1_1_, map_world, by = c("country" = "region"))
+
+ggplot(map_data_join)+
+  aes(x = long, y = lat, group = group, fill = obs_value) +
+  geom_polygon()+
+  labs(title = "Percentage of Adolescents Bullied Globally",
+       x = "longitude",
+       y = "latitude")+
+  theme_bw()
+
+```
+
+
+## Socio-Economic Factors
+
+When trying to understand the complex issues that contribute to bullying rates in different countries it is important to consider the different socio-economic factors that may influence these rates. 
+
+The key factors considered in this report are:
+
+- ***GDP per Capita***
+- ***Life Expectancy***
+
+
+### Life Expectancy
+```{r}
+#| fig-cap: "The time series visualisation shows how life expectancy has changed over time. Since we want to consider the socio-economic factors that could influence the rate of bullying in a country it is useful to look at the life expectancy over time as it shows how each country is developing. From the visualisation it is clear that in general countries in Africa have had a lower life expectancy, while those in Europe appear to have had a higher life expectancy "
+
+continent_filtered <- data_join_3 %>%
+  filter(!is.na(continent))
+
+time_series_plot_1 <- ggplot(continent_filtered)+
+  aes(x = year, y = LifeExp, group = country, color = continent)+
+  geom_line()+
+  theme_bw()+
+  labs(title = "Life Expectancy by continent over time",
+       x = "Year", 
+       y = "Life Expectancy")
+  
+time_series_plot_1 + theme(legend.position = "right")
+
+
+```
+
+
+### GDP per Capita and Life Expectancy
+
+```{r}
+#| fig-cap: "The scatter plot looks at the relationship between life expectancy and GDP per capita in a country. Using a linear regression line it is clear that there isn't a linear relationship between these two variables globally."
+scatter_plot_1 <- ggplot(data_join_2015)+
+  aes(x = GDPpercapita, y = LifeExp, color = country)+
+  geom_point()+
+  geom_smooth(method = "lm", color = 'blue')+
+  theme_bw()+
+  labs(title = "Relationship between Life Expectancy and GDP per Capita in 2015",
+  x = "GDP per Capita",
+  y = "Life Expectancy")
+scatter_plot_1 + theme(legend.position = "none")
+
+```
+
+```{r}
+#| fig-cap: "Using a different regression line it is clear that the relationship between GDP per capita and life expectancy in a country appears to show an exponential growth. This suggests that as GDP per capita increases so too does life expectancy but that the rate of increase isn't linear. This suggests that as countries experience sustained economic growth there is significant positive impact to healthcare and standard of living which increase the life expectancy in that country."
+
+scatter_plot_2 <- ggplot(data_join_2015)+
+  aes(x = GDPpercapita, y = LifeExp, color = country)+
+  geom_point()+
+  geom_smooth(method = "loess", color = 'blue')+
+  theme_bw()+
+  labs(title = "Relationship between Life Expectancy and GDP per Capita 2",
+       x = "GDP per Capita",
+       y = "Life Expectancy")
+scatter_plot_2 + theme(legend.position = "none")
+
+
+
+```
+ 
+ 
+## Bullying by Continent
+  
+```{r}
+#| fig-cap: "The above bar chart compares the average percentage of children reported to have been bullied in each continent. This reiterates the findings from the early visualisations that Africa has the highest average with Europe having the lowest. Considering Africa and Europe have very different average GDP per Capita's and Life Expectancy's this chart shows the need to further investigate what socio-economic factors are influencing the rate of bullying "
+
+obs_value_total_2 <- data_join_2 %>%
+  filter(sex == "Total") %>%
+  group_by(continent) %>%
+  summarise(m_obs_value = mean(obs_value))
+
+obs_value_filtered <- obs_value_total_2 %>%
+  filter(!is.na(continent))
+
+bar_chart_3 <- ggplot(obs_value_filtered)+
+  aes(x = continent, y = m_obs_value, fill = continent)+
+  geom_col()+
+  labs(title = "Average Percentage of Students Bullied by Continent",
+       x = "Continent",
+       y = "Percentage Bullied")
+bar_chart_3 + theme(legend.position = "none")
+
+```
+
+# Conclusion
+
+The above report provides insight into the link between the *prevalence of reported bullying in adolescents, the GDP per capita and life expectancy in a country*. Interestingly, countries with ***higher GDP per capita and life expectancy*** appear to have a ***lower percentage of reported bullying***. Meanwhile, countries with lower GDP per capita and life expectancy seem to have a higher rate of reported bullying. This was seen when focusing on countries in Africa and Europe. Policymakers in these countries need to carry out further reviews of the education system, as a high prevalence of bullying in adolescents can have a **detrimental impact on their development**. 
